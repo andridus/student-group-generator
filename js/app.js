@@ -1,0 +1,1 @@
+$("#container").append(can.view.mustache("<estudantes></estudantes>"))

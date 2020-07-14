@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <title>Gerador de Grupos</title>
+
+    <!-- Bootstrap -->
+    <script src="js/jquery.js"></script>
+    <script src="js/can.js"></script>
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+<style type="text/css">
+.estudantes{
+  list-style: none;
+}
+.estudantes li{
+  width: 110px;
+  height: 50px;
+  border: 1px solid #000;
+  float: left;
+  padding:3px;
+  margin:5px;
+  font-size: 10px;
+}
+.estudantes_grupos{
+  list-style: none;
+  border: 0px dashed #000;
+  float: left;
+  margin: 10px;
+}
+.estudantes_grupos li{
+  width: 110px;
+  height: 40px;
+  border: 1px solid #000;
+  float: left;
+  padding:3px;
+  margin:5px;
+  font-size: 10px;
+}
+.estudantes_de_fora{
+  list-style: none;
+  border: 2px solid blue;
+  width: 200px;
+  float: left;
+  margin: 10px;
+}
+.estudantes_de_fora li{
+  width: 110px;
+  height: 40px;
+  border: 1px solid #000;
+  float: left;
+  padding:3px;
+  margin:5px;
+  font-size: 10px;
+}
+.coordenador{
+  color: green!important;
+}
+.falta{
+  border:1px solid red!important;
+}
+.coordenador td{
+  background-color:#87db58!important;
+}
+.falta{
+  border:1px solid red!important;
+}
+.estudante{
+  width: 350px;
+  height: 40px;
+  float:left;
+  border:1px #ccc solid;
+  padding:5px;
+  margin:2px;
+  cursor:default;
+
+}
+.estudante:hover{
+  cursor:pointer;
+}
+</style>
+
+
+<div class="container">
+	<div class="row">
+		
+			<div id="container"></div>
+
+	</div>
+    
+</div>
+<script type="text/mustache" id="estudantesMustache">
+<div class="col-md-4">
+<h3>Nomes dos estudantes</h3>
+<div class="btn-group" style="margin-bottom:10px;">
+	<div class="btn btn-success btn-xs" ($click)="salvar_estudantes">Salvar Estudantes</div>
+	<div class="btn btn-danger btn-xs" ($click)="recarrega_estudantes">Recarregar Estudantes</div>
+	</div>
+	<div class="btn-group" style="margin-bottom:10px;">
+	<div class="btn btn-warning btn-xs" ($click)="gerar_grupos">Gerar Grupos</div>
+
+</div>
+<br />
+<small>Integrantes:</small> <input type="number" {($value)}="integrantes"/><br />
+<small>Repetições:</small> <input type="number" {($value)}="repeticoes" /><br />
+<small>Tabelas:</small> <input type="number" {($value)}="tabelas" />
+<div style="margin-bottom:10px;"></div>
+<h4>Estudantes</h4>
+<div class="btn btn-info btn-xs" ($click)="mais_estudante">+1 estudante</div>
+<ol>
+	{{#estudantes}}
+		<li><input class="est" type="text" placeholder="nome do estudante" {($value)}="nome" /> <div class="btn btn-danger btn-xs" ($click)="remover_estudante">X</div></li>
+	{{/estudantes}}
+	{{^estudantes}}
+		<li> SEM ESTUDANTES</li>
+	{{/estudantes}}
+</ol>
+</div>
+<div class="col-md-8">
+  {{#semanas}}
+<div class="row">
+  <div class="col-md-12">
+  
+  <h1> TABELA {{i}}</h2>
+  </div>
+</div>
+  <div class="row">
+    <div class="col-md-3">
+      <i>Início da Semana</i><br />
+      <input type="date" class="form-control" can-value="semana_inicio" />
+    </div>
+    <div class="col-md-3">
+      <i>Fim da Semana</i><br /> 
+      <input type="date" class="form-control" can-value="semana_fim"/>
+     </div>
+  </div>
+  <div class="row" style="margin-top:10px">
+  <div class="col-md-12">
+  <table class="table table-bordered">
+  {{#grupos}}
+  <tbody>
+    <tr class="estudantes_grupos">
+      {{#grupo}}
+      <td data-id="{{id}}" class="{{#coordenador}}coordenador_td{{/coordenador}}" >{{nome}}</td>
+      {{/grupo}}
+    </tr>
+  <tbody>
+  {{/grupos}}
+
+  </table>
+      <ul class="estudantes_de_fora">
+      {{#de_fora}}
+      <li data-id="{{id}}">{{nome}}</li>
+      {{/de_fora}}
+    </ul>
+     <div class="clearfix"></div>
+    
+   </div>
+
+</div>
+{{/semanas}}
+</div>
+</script>
+<script>
+
+function genId(idCount){
+  var charSet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  var charSetSize = charSet.length;
+  var charCount = 2;
+  idCount = idCount;
+
+  // field validation
+  if (!charSet || !charCount || !idCount) {
+      alert('Fill in all fields.');
+      return;
+  }
+
+  // prevents infinite loop when generatedIds
+  // could not be fully populated
+  if (charCount * charSetSize < idCount) {
+      alert('Not enough uniques available.');
+      return;
+  }
+
+  generateRandomId = function() {
+            var id = '';
+            for (var i = 1; i <= charCount; i++) {
+                var randPos = Math.floor(Math.random() * charSetSize);
+                id += charSet[randPos];
+            }
+            return id;
+        };
+
+  generatedIds = [];
+  while (generatedIds.length < idCount) {
+      var id = generateRandomId();
+      if ($.inArray(id, generatedIds) == -1) generatedIds.push(id);
+  }
+  return generatedIds;
+}
+
+var ctrlPressed = shiftPressed= altPressed=false;
+$(window).keydown(function(evt){
+  if(evt.which==17){
+    ctrlPressed =true;
+}
+if(evt.which==16){
+    shiftPressed =true;
+
+}
+if(evt.which==18){
+    altPressed =true;
+}
+}).keyup(function(evt){ 
+if(evt.which==17){
+  ctrlPressed = false;
+
+}
+if(evt.which==16){
+    shiftPressed =false;
+}
+if(evt.which==18){
+    altPressed =false;
+}
+});
+
+can.mustache.registerHelper('now', function(str, options) {
+    var date = new Date;
+    return date.getFullYear() - parseInt(str()) + 1;
+});
+
+
+can.Component.extend({
+  tag: "estudantes",
+  template: can.stache($("#estudantesMustache").html()),
+  init:function(){
+  },
+  viewModel: {
+  	estudantes:can.List(),
+  	repeticoes:0,
+  	tabelas:1,
+  	integrantes:3,
+  	salvar_estudantes:function(m,e){
+  		localStorage.setItem('estudantes', JSON.stringify(this.estudantes.serialize()));	
+  	},
+  	recarrega_estudantes:function(){
+  		this.attr("estudantes",JSON.parse(localStorage.getItem('estudantes')));
+      this.estudantes.each(function(e,i){
+        e.attr('coordenador',null);
+        e.attr('codigo_grupo',null);
+        e.attr("codigo_grupo_base",null);
+        e.attr("grupo",null);
+      });
+  	},
+  	remover_estudante:function(m,e){
+  		if(this.estudantes.length>0){
+  			this.estudantes.splice(this.estudantes.indexOf(m),1);
+  		}
+
+  	},
+  	mais_estudante:function(m,e){
+  		this.estudantes.push({nome:"",coordenador:false,grupo:null});
+  		$("input.est:last").focus();
+
+  	},
+  	gerar_grupos:function(){
+      var that = this;
+      
+      var contagem_de_grupo = "B";
+    
+
+      this.attr('semanas',[]);
+    
+      //var idsGenerated = genId(this.estudantes.length);
+      var ids=0;
+      this.estudantes.each(function(e,i){
+        e.attr('interacao',[]);
+        e.attr('interacoes',[]);
+        e.attr("id",ids++);
+        e.attr('coordenador',null);
+        e.attr('codigo_grupo',null);
+        e.attr("codigo_grupo_base",null);
+        e.attr("grupo",null);
+      });
+      
+      var $tentativas = 5;
+      //começa a gerar os grupos por semana
+      for(l=0;l<this.tabelas;l++){
+      this.estudantes.each(function(e,el){
+        e.attr('grupo',null);
+      });
+
+
+      var j=1;
+      var pilha = [];
+
+      //captura todos os estudantes numa variável
+      var estudantes = this.estudantes.filter(function(e,i){
+                return e.grupo==null  ;
+          });
+
+      //captura os coordenadores numa variável e define um grupo inicial par ellos
+      var coordenadores = estudantes.filter(function(e,i){
+        if(e.coordenador==1){
+          e.attr('grupo',j);
+          pilha['grupo'+j]=0;
+          j++;
+        }
+        return e.coordenador;
+      });
+      //captura todos os estudantes sem grupos numa variável semgrupo
+     var semgrupo = estudantes.filter(function(e,i){
+                return e.grupo==null;
+          });
+
+     //id aleatorio de semgrupo PODE MUDAR
+     var id_aleatorio_sem_grupo = Math.floor(Math.random()*semgrupo.length);
+
+     //Total de estudantes
+     var total_estudantes = estudantes.length;
+
+     //Total de células a serem formadas, pegando o total de estudnantes e dividindo pelo quantidade de integrantes por grupo
+     var total_de_celulas = Math.floor(total_estudantes/this.integrantes);
+    console.log(total_de_celulas);
+     this.semanas.push({'i':l,'grupos':[]});
+
+
+     //se a opção de selecionar coordenadores aleatoriamente for marcada, vai executar o código abaixo
+
+     if(1){
+      var g =0;
+       while(coordenadores.length < total_de_celulas){
+        semgrupo = estudantes.filter(function(e,i){
+                  return e.grupo==null;
+            });
+        id_aleatorio_sem_grupo = Math.floor(Math.random()*semgrupo.length);
+          coordenadores = estudantes.filter(function(e,i){
+          if(i==id_aleatorio_sem_grupo && e.faltou != 1){
+              var codigos_coordenador = $.map(that.estudantes,function(e,i){
+                return e.coordenador && e.codigo_grupo;
+              })
+
+              codigos_coordenador.sort();
+              
+              for (g;g<codigos_coordenador.length;g++){
+                if(typeof(codigos_coordenador[g])=="undefined")
+                  break;
+              };
+              g++;
+        
+              e.attr('coordenador',true);
+              e.attr('grupo',j);
+              e.attr('codigo_grupo','A'+g);
+              e.attr('codigo_grupo_base','A');
+              pilha['grupo'+j]=0;
+              j++;
+            }
+          return e.coordenador;
+        });
+       }
+     }  
+
+     //Informa que não é possível gerar grupos sem coordenadores.
+     if(coordenadores.length==0){
+      alert("Não é possível gerar grupos, selecione coordenadores!");
+      that.removeAttr('semanas');
+      return;
+     }
+
+     //resgata novamente os estudantes sem grupo, já que os coordenadores já foram selecionados
+     var semgrupo =this.estudantes.filter(function(e,i){
+                          return e.grupo==null;
+                      });
+
+     codigos_gravados = [];
+
+     var w = o =1;
+     console.log(that);
+
+     semgrupo =semgrupo.filter(function(e,i){
+                        if(typeof(e.codigo_grupo)=='undefined'||e.codigo_grupo==null){
+                          if(w<=((semgrupo.length/2)+1)){
+                            codigos_gravados.push('B'+w);
+                            e.attr('codigo_grupo','B'+w);
+                            e.attr('codigo_grupo_base','B');
+                            w++;
+                          }else if (o<=semgrupo.length/2){
+                            codigos_gravados.push('C'+o);
+                            e.attr('codigo_grupo','C'+o);
+                            e.attr('codigo_grupo_base','C')
+                            o++;
+                          }
+                        }
+                        return e.grupo==null&&e.faltou!=1;
+                      });
+
+      var coordenadores_nao_selecionados = coordenadores;
+      var $b=0;
+      var $a =0;
+      while(semgrupo.length!=0){
+
+        semgrupo = this.estudantes.filter(function(e,i){
+                          return e.grupo==null;
+          });
+        
+        if(coordenadores_nao_selecionados.length == 0){
+          coordenadores_nao_selecionados = this.estudantes.filter(function(e,i){
+                        return e.coordenador==1;
+                      });
+        }
+        //var idx_coord = Math.floor(Math.random()*(coordenadores_nao_selecionados.length));
+        var idx_coord = $a;
+        var r =0;
+        do{
+        semgrupo = this.estudantes.filter(function(e,i){
+                        return e.grupo==null;
+        });
+
+        selecionados = semgrupo.filter(function(e,i){
+                  var count=0;
+
+                  if(coordenadores_nao_selecionados[idx_coord].interacao.length>0)
+                  {
+                    for (a=0;a<coordenadores_nao_selecionados[idx_coord].interacao.length;a++){
+                      if(coordenadores_nao_selecionados[idx_coord].interacao[a].ids.length>0)
+                        for (z=0;z<coordenadores_nao_selecionados[idx_coord].interacao.length;z++){
+                          if(coordenadores_nao_selecionados[idx_coord].interacao[a].ids[z] == e.id){
+                            count++;
+                          }
+                        }
+
+                      }
+                      if(count==r){
+                        return true;
+                      }
+                  }else
+                    return true;
+                });
+
+        if(r<parseInt(that.repeticoes)){
+          r++;
+        }else{
+          break;
+        }
+        }while(selecionados.length==0);
+
+        var inte =100;
+        function m(a,b){return a.vezes-b.vezes};
+
+
+        var intt = [];
+
+        var ee = that.estudantes.filter(function(er,i){
+                       return er.grupo==coordenadores_nao_selecionados[idx_coord].grupo;
+                      });
+          $.each(ee, function(i,ea){
+          	if(typeof ea.interacoes[ea.id] == 'undefined' || ea.interacoes[ea.id] ==null )
+          		ea.interacoes[ea.id] = can.List();
+            ea.interacoes[ea.id].attr('vezes',0);
+              that.estudantes.each(function(e,i){
+                      if(typeof(ea.interacoes[e.id])!='undefined'){
+                        if(typeof(intt[parseInt(e.id)])!='undefined')
+                          {
+                            if(intt[parseInt(e.id)].vezes<ea.interacoes[e.id]['vezes'])
+                               intt[parseInt(e.id)] = {id:parseInt(e.id),vezes:ea.interacoes[e.id]['vezes']};
+                          }else{
+                              intt[parseInt(e.id)] = {id:parseInt(e.id),vezes:ea.interacoes[e.id]['vezes']};
+                          }
+
+                      }else{
+                        if(typeof(intt[parseInt(e.id)])=='undefined')
+                          {
+                            intt[parseInt(e.id)] = {id:parseInt(e.id),vezes:0};
+                          }
+                        
+                      }
+
+                });
+            });
+          
+        var reduce = $.map(intt,function(e,i){
+               if(typeof(e)=='undefined') return;
+                if(typeof(e.id)!='undefined' && !e.selecionado)
+                    return {id:e.id,vezes:e.vezes}
+
+              });
+        var interacoes = reduce.sort(m);
+        var lista_ordenada_tmp =[];
+        var lista_ordenada = [];
+        selecionados.each(function(e,i){
+          var vezes =0
+          if(typeof(coordenadores_nao_selecionados[idx_coord].interacoes[e.id])!='undefined'){
+            vezes = coordenadores_nao_selecionados[idx_coord].interacoes[e.id].vezes;
+          }
+          var $id = $.map(interacoes,function(er,i){if(parseInt(e.id)==er.id)return i})[0];
+          
+          if(typeof($id)!='undefined')
+            lista_ordenada_tmp[$id] = e;
+        });
+        var $i=0;
+        $.each(lista_ordenada_tmp,function(i,e){
+          if(typeof(e)!='undefined')
+          {
+          lista_ordenada[$i] = e;
+          $i++;  
+          }
+          
+        })
+        /*var idx = Math.floor(Math.random()*selecionados.length);
+        selecionados.filter(function(e,i){
+          if(i==idx){
+              e.attr('grupo',coordenadores_nao_selecionados[idx_coord].grupo);
+              pilha['grupo'+coordenadores_nao_selecionados[idx_coord].grupo]++;
+              coordenadores_nao_selecionados.splice(idx_coord,1);  
+              }
+         });*/
+        if(lista_ordenada.length==0)break;
+        lista_ordenada[0].attr('grupo',coordenadores_nao_selecionados[idx_coord].grupo);
+        pilha['grupo'+coordenadores_nao_selecionados[idx_coord].grupo]++;
+        //coordenadores_nao_selecionados.splice(idx_coord,1); 
+
+        if($a >= (coordenadores_nao_selecionados.length-1)){
+          $b++;
+          $a=0;
+          var d = estudantes.filter(function(e,i){
+                return !e.coordenador;
+          });
+          var c = estudantes.filter(function(e,i){
+                        return e.coordenador==1;
+            });
+
+          var passou = d.length % c.length;
+          if(semgrupo.length<=passou+1){
+            $a=Math.floor(Math.random()*(c.length-1));
+            
+          }
+          
+        }else{
+          $a++;
+        }
+        console.log("valor de a:", $a);
+      }
+
+      var $defora = this.estudantes.filter(function(e,i){
+                        return e.grupo==null;
+        });
+
+
+
+
+      var coordenadores = this.estudantes.filter(function(e,i){
+                if(e.coordenador==1){
+                  
+                  return true;
+                }
+                
+          });
+      
+    
+      for(k=0;k<coordenadores.length;k++){
+        var grupos = this.estudantes.filter(function(e,el){
+            return e.grupo==coordenadores[k].grupo;
+        });
+        agrupado = this.estudantes.filter(function(e,el){
+          if(e.grupo == coordenadores[k].grupo){
+            var ids = [];
+            grupos.each(function(eu,i){
+              if(e.id!=eu.id)
+                ids.push(eu.id);
+
+            });
+            e.interacao.push({ids:ids,semana:l})
+            return true;
+          }
+          
+        })
+
+        that.semanas[l].attr('de_fora',this.estudantes.filter(function(e,i){
+                        return e.grupo==null;
+        }));
+        agrupado.attr("comparator","codigo_grupo");
+        that.semanas[l].grupos.push({grupo:agrupado});
+
+        agrupado.attr("comparator","codigo_grupo");
+        
+      }
+       console.log($tentativas,l);
+       //alert("Grupo " + l +" Gerado!");
+      if($defora.length>0) {
+        if($tentativas==0){
+          that.semanas.splice(l,1); 
+          alert("Só foi possível gerar " + l +" grupos sem repetição!");
+          return;
+        } 
+        $tentativas--;
+        that.semanas.splice(l,1); 
+        l--;
+        
+        continue;
+      }
+      console.log(that);
+    }
+    
+  },
+  },
+  events: {
+    
+  }
+});
+
+$("#container").append(can.view.mustache("<estudantes></estudantes>"));
+$("#grupos_main").html(can.view.mustache("<grupos></grupos>"));
+
+</script>
+    <script src="js/bootstrap.min.js"></script>
+  </body>
+</html>
